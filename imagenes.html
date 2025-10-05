@@ -1,0 +1,254 @@
+SISISIS PERO QUE SOLO SEA EN INGLES <!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Imágenes - Hackonautas</title>
+<style>
+html, body{
+  margin:0; padding:0;
+  font-family:'Orbitron', sans-serif;
+  background:black;
+  color:white;
+  overflow-x:hidden;
+  scroll-behavior: smooth;
+}
+canvas{position:fixed;top:0;left:0;z-index:0;}
+
+header{
+  position:relative;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+header img{
+  width:100%;
+  height:auto;
+  display:block;
+  max-width:none;
+}
+
+nav{
+  position:absolute;
+  bottom:10px;
+  display:flex; justify-content:center; gap:15px; flex-wrap: wrap;
+  z-index:10;
+}
+nav a{
+  padding:10px 20px; background:rgba(0,0,0,0.6); border-radius:8px; text-decoration:none; color:white;
+  transition:0.3s;
+}
+nav a:hover{background:rgba(255,255,255,0.2);}
+
+main{
+  position:relative;
+  z-index:10;
+  padding:20px;
+  text-align:center;
+  min-height:100vh;
+}
+
+#gallery{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap:15px;
+  margin-top:20px;
+}
+#gallery img{
+  width:100%;
+  height:200px; 
+  object-fit: cover;
+  border-radius:8px;
+  cursor:pointer;
+  opacity: 0;
+  transform: translateY(60px) scale(0.95);
+  transition: transform 2s ease, opacity 2s ease, box-shadow 0.5s ease, filter 0.5s ease;
+  filter: brightness(1);
+}
+#gallery img:hover{
+  box-shadow: 0 0 30px white;
+  filter: brightness(1.5);
+}
+
+/* Modal */
+#modal{
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.95);
+  display:none; justify-content:center; align-items:center;
+  flex-direction:column; z-index:20;
+  padding:20px; text-align:center;
+  overflow-y:auto;
+}
+#modal img{max-width:90%; max-height:70%; border-radius:10px; margin-bottom:20px;}
+#modal h2{margin:10px 0;}
+#modal p{
+  max-width:800px;
+  white-space: pre-line;
+  text-align: justify;
+  line-height: 1.6em;
+}
+#modal button{
+  padding:10px 20px; border:none; background:#fff; color:#000;
+  border-radius:8px; cursor:pointer; font-weight:bold;
+}
+#modal button:hover{background:#ddd;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<header>
+  <img src="banner.general.jpg" alt="Banner Hackonautas" id="banner">
+  <nav>
+    <a href="index.html">Inicio</a>
+    <a href="imagenes.html">Imágenes</a>
+    <a href="videos.html">Videos</a>
+    <a href="explorador.html">Explorador 3D</a>
+    <a href="juego.html">Juego</a>
+    <a href="contacto.html">Contacto</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Galería de Imágenes Hackonautas</h1>
+  <div id="gallery"></div>
+</main>
+
+<div id="modal">
+  <img id="modalImg" src="">
+  <h2 id="modalTitle"></h2>
+  <p id="modalDesc"></p>
+  <button onclick="closeModal()">Cerrar</button>
+</div>
+
+<script>
+// ---------- Fondo estrellado ----------
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+window.addEventListener('resize',()=>{
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
+
+const stars = Array.from({length: Math.floor(width/4)},()=>({
+  x: Math.random()*width,
+  y: Math.random()*height,
+  r: Math.random()*1.2,
+  alpha: Math.random(),
+  dx: (Math.random()-0.5)*0.2,
+  dy: (Math.random()-0.5)*0.2
+}));
+
+function animateBG(){
+  ctx.fillStyle='black';
+  ctx.fillRect(0,0,width,height);
+  stars.forEach(s=>{
+    ctx.fillStyle=`rgba(255,255,255,${s.alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fill();
+    s.x += s.dx; s.y += s.dy;
+    if(s.x<0||s.x>width) s.dx*=-1;
+    if(s.y<0||s.y>height) s.dy*=-1;
+  });
+  requestAnimationFrame(animateBG);
+}
+animateBG();
+
+// ---------- Galería ----------
+const gallery = document.getElementById("gallery");
+const images = [
+  {src:"The Day Earth Smiled.webp", title:"The Day Earth Smiled", desc:"On July 19, 2013, Cassini photographed Saturn and, in the distance, Earth. It was the first time humanity knew its photo would be taken from so far away. Today, Cassini’s lessons guide the Europa Clipper mission. 🌍📸🪐"},
+  {src:"Rare Type of Black Hole Snacks on Star.webp", title:"Rare Type of Black Hole Snacks on Star", desc:"In July 2025, Hubble and Chandra spotted a rare intermediate-mass black hole devouring a star in galaxy NGC 6099. These cosmic giants bridge the gap between small and supermassive black holes. 🕳️💫"},
+  {src:"Moonlight and Our Atmosphere.webp", title:"Moonlight and our Atmosphere", desc:"From the ISS on April 13, 2025, the Moon’s light was photographed refracted through Earth’s atmosphere over South America. Studying the Moon helps us understand other worlds and prepares the way for future Artemis missions and, eventually, Mars. 🌙🛰️"},
+  {src:"Milky Way Views.jpg", title:"Milky Way Views", desc:"The Milky Way shone above Iran from the International Space Station on August 23, 2025. With hundreds of billions of stars and even more dark matter, our galaxy remains full of mysteries. The upcoming Nancy Grace Roman Space Telescope will help scientists study the interstellar gas and dust. 🌌"},
+  {src:"Hubble Captures a Tarantula.webp", title:"Hubble Captures a Tarantula", desc:"Hubble revealed the stunning Tarantula Nebula, a star-forming powerhouse in the Large Magellanic Cloud. Massive stars, some over 200 times the Sun’s mass, are born and die here, shaping the surrounding cosmic clouds. 🕷️🌠"},
+  {src:"Golden Lake.webp", title:"Golden Lake", desc:"Lake Balkhash in Kazakhstan glistened like gold in 2016, seen from the ISS. These images help track Earth’s changes due to disasters, climate, and human activity, while also supporting future missions like Artemis and journeys to Mars. 🌍✨"},
+  {src:"Far out.webp", title:"Far out", desc:"The Pismis 24 star cluster once seemed to hold the galaxy’s most massive star, up to 300 Suns. Hubble revealed it was actually two giants, each 100–150 solar masses. A reminder that the universe is full of surprises. ⭐🔭"},
+  {src:"A Brief Outburst.webp", title:"A Brief Outburst", desc:"On February 24, 2015, SOHO captured a solar eruption sending a huge filament into space. Though its mission was short, it has spent nearly 30 years uncovering the Sun’s secrets and discovering over 5,000 comets. ☀️🔥"}
+];
+
+let activeParticles = [];
+let zooms = [];
+
+// Partículas al mover el mouse
+function createParticles(x,y){
+  const arr=[];
+  for(let i=0;i<10;i++){
+    arr.push({
+      x,y,
+      dx:(Math.random()-0.5)*1.5,
+      dy:(Math.random()-0.5)*1.5,
+      r:Math.random()*2+1,
+      alpha:1
+    });
+  }
+  return arr;
+}
+
+function animateParticles(particles){
+  particles.forEach(p=>{
+    p.x+=p.dx; p.y+=p.dy;
+    p.alpha-=0.02;
+  });
+  particles = particles.filter(p=>p.alpha>0);
+  ctx.save();
+  particles.forEach(p=>{
+    ctx.fillStyle=`rgba(255,255,255,${p.alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
+  return particles;
+}
+
+// Crear imágenes con entrada lenta
+images.forEach((imgData,index)=>{
+  const img = document.createElement("img");
+  img.src=imgData.src;
+  img.title=imgData.title;
+  img.dataset.desc=imgData.desc;
+  gallery.appendChild(img);
+  zooms.push({img: img, scale: 1, direction: 0.0004});
+
+  setTimeout(()=>{
+    img.style.opacity=1;
+    img.style.transform='translateY(0) scale(1.03)';
+  }, index*300); // Animación lenta y escalonada
+
+  img.addEventListener('mousemove',(e)=>{
+    activeParticles.push(...createParticles(e.clientX,e.clientY));
+  });
+
+  img.addEventListener('click',()=>{
+    document.getElementById("modalImg").src=img.src;
+    document.getElementById("modalTitle").innerText=img.title;
+    document.getElementById("modalDesc").innerText=img.dataset.desc;
+    document.getElementById("modal").style.display="flex";
+  });
+});
+
+function closeModal(){document.getElementById("modal").style.display="none";}
+
+// Animación de partículas y zoom
+function animateAll(){
+  activeParticles = animateParticles(activeParticles);
+
+  zooms.forEach(z=>{
+    z.scale += z.direction;
+    if(z.scale>1.06 || z.scale<1.02) z.direction *= -1;
+    z.img.style.transform=`translateY(0) scale(${z.scale})`;
+  });
+
+  requestAnimationFrame(animateAll);
+}
+animateAll();
+</script>
+</body>
+</html>

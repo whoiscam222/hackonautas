@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Juegos - Hackonautas</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#000; --panel: rgba(255,255,255,0.06); --accent:#2ce6ff; }
+  html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:'Orbitron',sans-serif;}
+  header{background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4)); padding:18px; text-align:center; position:relative; z-index:20;}
+  header img{max-width:260px;border-radius:12px; display:block;margin:0 auto 8px;}
+  nav{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  nav a{padding:8px 14px;background:#222;border-radius:8px;text-decoration:none;color:#fff;font-size:14px;}
+  main{padding:18px;max-width:1200px;margin:0 auto;z-index:10;position:relative;}
+  h1{margin:6px 0 12px;font-size:28px;text-align:center;}
+  .game-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;}
+  .game-box{background:var(--panel);border:1px solid rgba(255,255,255,0.12);padding:14px;border-radius:10px;cursor:pointer;transition:transform .18s, box-shadow .18s;}
+  .game-box:hover{transform:translateY(-6px); box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+  .game-box h2{margin:0 0 6px;font-size:16px;}
+  .game-box p{margin:0;color:#cfcfcf;font-size:13px;}
+
+  /* area del juego */
+  #gameArea{margin-top:20px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .game-wrapper{display:none; position:relative; background:#071022; padding:12px; border-radius:12px; border:2px solid rgba(255,255,255,0.08);}
+  .game-wrapper.active{display:block;}
+  canvas{display:block;background:#050710;border-radius:8px; max-width:100%; height:auto;}
+  .controls{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:6px;}
+  button.action{background:var(--accent);color:#001; border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700;}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer;}
+
+  #closeGame{position:fixed;top:18px;right:18px;background:#ff5b5b;color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;display:none;z-index:60}
+  #instructions{font-size:13px;color:#dfefff; text-align:center;}
+
+  /* MEMORIA (grid de cartas) */
+  .mem-grid{display:grid;grid-template-columns:repeat(4, 80px);gap:10px;justify-content:center;padding:12px;}
+  .card{width:80px;height:100px;background:#0b1530;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;user-select:none;border:2px solid rgba(255,255,255,0.03);}
+  .card.flipped{background:#e8faff;color:#001;font-size:28px;transform:rotateY(0);}
+
+  /* overlay test */
+  #testContainer{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:80;padding:20px;
+  }
+  #testContainer h2{margin:0 0 8px;}
+  .testOption{margin:8px;background:#223;border:none;padding:10px 14px;border-radius:10px;color:#fff;cursor:pointer;font-weight:700;}
+  .testOption:hover{background:#335;}
+  #testMessage{color:#ff9c9c;margin-top:8px;}
+
+  /* responsive */
+  @media (max-width:720px){
+    .mem-grid{grid-template-columns:repeat(4, 60px);}
+    .card{width:60px;height:80px;font-size:22px;}
+    canvas{width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="banner.general.jpg" alt="Banner Hackonautas — (si no tienes la imagen no pasa nada)">
+  <nav id="mainNav">
+  <a href="index.html">Home</a>
+  <a href="imagenes.html">Images</a>
+  <a href="videos.html">Videos</a>
+  <a href="explorador.html">3D Explorer</a>
+  <a href="juego.html">Games</a>
+  <a href="contacto.html">Contact</a>
+</nav>
+</header>
+
+<main>
+  <h1>Games Hackonautas — Space Module</h1>
+  <p id="instructions">“Complete the test to unlock the games. Select a game, then use the controls that appear to play. Each game has a reset button..</p>
+
+  <div class="game-list">
+    <div class="game-box" data-game="laberinto">
+      <h2>🏁 Maze: Rocket to the Moon</h2>
+      <p>Move the rocket with the arrow keys. Take the rocket to the moon without crashing.</p>
+    </div>
+
+    <div class="game-box" data-game="memoria">
+      <h2>🧠 Space Memory</h2>
+      <p>Find the pairs of space icons. Time and number of attempts are displayed.</p>
+    </div>
+
+    <div class="game-box" data-game="evitar">
+      <h2>☄️ Avoid Asteroids</h2>
+      <p>Move the ship with ← →, avoid asteroids. You have 3 lives.</p>
+    </div>
+
+    <div class="game-box" data-game="atrapa">
+      <h2>⭐ Catch Stars</h2>
+      <p>Move the platform with the mouse to catch falling stars. Earn points.</p>
+    </div>
+  </div>
+
+  <!-- AREA DE JUEGOS -->
+  <section id="gameArea">
+    <!-- LABERINTO -->
+    <div id="laberinto" class="game-wrapper" aria-hidden="true">
+      <canvas id="labCanvas" width="700" height="450"></canvas>
+      <div class="controls">
+        <button class="action" data-action="restart" data-target="laberinto">Reset Maze</button>
+        <button class="ghost" data-action="close">Cerrar</button>
+      </div>
+      <div style="text-align:center;margin-top:6px;color:#cfefff;font-size:13px;">Controles: Flechas ↑ ↓ ← →</div>
+    </div>
+
+    <!-- MEMORIA -->
+    <div id="memoria" class="game-wrapper" aria-hidden="true" style="padding:8px;">
+      <div style="display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;">
+        <div style="color:#dfefff;font-weight:700;">Attempts: <span id="memAttempts">0</span></div>
+        <div style="color:#dfefff;font-weight:700;">Correct Answers: <span id="memMatches">0</span></div>
+        <button class="action" data-action="restart" data-target="memoria">Reset Memory</button>
+        <button class="ghost" data-action="close">Close</button>
+      </div>
+      <div style="height:12px;"></div>
+      <div id="memGrid" class="mem-grid"></div>
+    </div>
+
+    <!-- EVITAR ASTEROIDES -->
+    <div id="evitar" class="game-wrapper" aria-hidden="true">
+      <canvas id="evitCanvas" width="700" height="450"></canvas>
+      <div class="controls">
+        <div style="color:#dfefff;font-weight:700;margin-right:8px;">Lives: <span id="evLives">3</span></div>
+        <div style="color:#dfefff;font-weight:700;margin-right:8px;">Score: <span id="evScore">0</span></div>
+        <button class="action" data-action="restart" data-target="evitar">Reset Avoid</button>
+        <button class="ghost" data-action="close">Close</button>
+      </div>
+      <div style="text-align:center;margin-top:6px;color:#cfefff;font-size:13px;">Controls: ← →</div>
+    </div>
+
+    <!-- ATRAPA ESTRELLAS -->
+    <div id="atrapa" class="game-wrapper" aria-hidden="true">
+      <canvas id="trapCanvas" width="700" height="450"></canvas>
+      <div class="controls">
+        <div style="color:#dfefff;font-weight:700;margin-right:8px;">Score: <span id="trapScore">0</span></div>
+        <button class="action" data-action="restart" data-target="atrapa">Reset Catch</button>
+        <button class="ghost" data-action="close">Cerrar</button>
+      </div>
+      <div style="text-align:center;margin-top:6px;color:#cfefff;font-size:13px;">Control: move the mouse over the canvas</div>
+    </div>
+  </section>
+
+</main>
+
+<button id="closeGame" title="Cerrar juego">✖</button>
+
+<!-- OVERLAY: TEST -->
+<div id="testContainer">
+  <h2>Answer to unlock the games</h2>
+  <p style="margin:6px 0 10px;">Which is the closest planet to the Sun?</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="testOption">Mercurio</button>
+    <button class="testOption">Venus</button>
+    <button class="testOption">Mars</button>
+    <button class="testOption">Júpiter</button>
+  </div>
+  <p id="testMessage"></p>
+</div>
+
+<script>
+/* --------------------------
+  Administración de sesiones
+   - start/stop por cada juego
+   - evita que queden RAF o intervals activos
+----------------------------*/
+const activeSession = { current: null, sessions: {} };
+
+function stopCurrentSession(){
+  const id = activeSession.current;
+  if(!id) return;
+  const s = activeSession.sessions[id];
+  if(!s) return;
+  // stop intervals and RAF
+  if(s.raf) cancelAnimationFrame(s.raf);
+  if(s.intervals) s.intervals.forEach(i=>clearInterval(i));
+  if(s.keyHandlers) s.keyHandlers.forEach(h=>document.removeEventListener('keydown', h));
+  if(s.mouseHandlers) s.mouseHandlers.forEach(h=>document.removeEventListener('mousemove', h));
+  activeSession.current = null;
+}
+
+/* --------------------------
+  Mostrar / ocultar wrapper
+----------------------------*/
+function showWrapper(name){
+  stopCurrentSession();
+  document.querySelectorAll('.game-wrapper').forEach(w=>{
+    if(w.id === name){ w.classList.add('active'); w.setAttribute('aria-hidden','false'); }
+    else { w.classList.remove('active'); w.setAttribute('aria-hidden','true'); }
+  });
+  document.getElementById('closeGame').style.display = 'block';
+  activeSession.current = name;
+}
+
+/* --------------------------
+  CERRAR BOTON
+----------------------------*/
+document.getElementById('closeGame').addEventListener('click',()=>{
+  stopCurrentSession();
+  document.querySelectorAll('.game-wrapper').forEach(w=>{ w.classList.remove('active'); w.setAttribute('aria-hidden','true'); });
+  document.getElementById('closeGame').style.display = 'none';
+});
+
+/* --------------------------
+  Evento click en tarjetas de juego
+----------------------------*/
+document.querySelectorAll('.game-box').forEach(box=>{
+  box.addEventListener('click', ()=>{
+    const g = box.dataset.game;
+    // show wrapper y start
+    showWrapper(g);
+    if(!activeSession.sessions[g] || activeSession.sessions[g].needsRestart) {
+      // crear / reiniciar
+      if(g==='laberinto') startLaberinto();
+      if(g==='memoria') startMemoria();
+      if(g==='evitar') startEvitar();
+      if(g==='atrapa') startAtrapa();
+    }
+  });
+});
+
+/* --------------------------
+  RESTART / CLOSE buttons (delegation)
+----------------------------*/
+document.body.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const action = btn.dataset.action;
+  if(action === 'close'){
+    document.getElementById('closeGame').click();
+  } else if(action === 'restart'){
+    const target = btn.dataset.target;
+    // mark to restart
+    activeSession.sessions[target] = { needsRestart: true };
+    // re-open immediately to trigger start
+    document.querySelector(`.game-box[data-game="${target}"]`).click();
+  }
+});
+
+/* --------------------------
+  TEST overlay
+----------------------------*/
+const testContainer = document.getElementById('testContainer');
+const testOptions = document.querySelectorAll('.testOption');
+const testMessage = document.getElementById('testMessage');
+testOptions.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.innerText.trim().toLowerCase()==='mercururio' || btn.innerText.trim().toLowerCase()==='mercurio'.replace('í','i')){
+      testContainer.style.display='none';
+      // unlocked
+    } else {
+      testMessage.innerText = 'Respuesta incorrecta. Intenta de nuevo.';
+      setTimeout(()=> testMessage.innerText = '', 2500);
+    }
+  });
+});
+
+/* ===========================
+   JUEGO 1 - LABERINTO (canvas)
+   - flechas para mover cohete
+   - paredes simples, meta: luna
+============================*/
+function startLaberinto(){
+  stopCurrentSession();
+  const name = 'laberinto';
+  const canvas = document.getElementById('labCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  // mapa: walls array
+  const walls = [
+    {x: 90, y: 0, w: 18, h: 320},
+    {x: 200, y: 100, w: 300, h: 18},
+    {x: 420, y: 200, w: 18, h: 260},
+    {x: 300, y: 280, w: 18, h: 150},
+    {x: 480, y: 0, w: 18, h: 200},
+    {x: 10, y: 360, w: 200, h: 18}
+  ];
+  const rocket = {x:20,y:20,w:28,h:36,color:'#7efcff'};
+  const moon = {x:W-80,y:H-80,w:60,h:60};
+  let raf;
+  let keys = {left:false,right:false,up:false,down:false};
+  function collides(a,b){
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+  function canMove(nx,ny){
+    const test = {x:nx,y:ny,w:rocket.w,h:rocket.h};
+    // bounds
+    if(nx<0 || ny<0 || nx+rocket.w>W || ny+rocket.h>H) return false;
+    // walls
+    for(const w of walls) if(collides(test,w)) return false;
+    return true;
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // fondo estrellado sutil
+    for(let i=0;i<60;i++){ ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fillRect((i*37)%W,(i*53)%H,2,2); }
+    // walls
+    ctx.fillStyle='#aabbd6';
+    for(const w of walls) ctx.fillRect(w.x,w.y,w.w,w.h);
+    // moon
+    ctx.fillStyle='#f7f3c6';
+    ctx.beginPath(); ctx.arc(moon.x+moon.w/2, moon.y+moon.h/2, moon.w/2, 0, Math.PI*2); ctx.fill();
+    // rocket
+    ctx.fillStyle = rocket.color;
+    ctx.fillRect(rocket.x,rocket.y,rocket.w,rocket.h);
+    // flame
+    ctx.fillStyle = '#ffcc6b';
+    ctx.fillRect(rocket.x+6, rocket.y+rocket.h, 12, 10);
+    // HUD
+    ctx.fillStyle='#dfefff'; ctx.font='16px sans-serif';
+    ctx.fillText('Lleva el cohete hasta la Luna 🌙', 12, 22);
+    // check goal
+    if(collides(rocket, moon)){
+      cancelAnimationFrame(raf);
+      setTimeout(()=> alert('¡Felicidades! El cohete llegó a la Luna 🚀🌙'), 40);
+      activeSession.sessions[name] = { needsRestart: true };
+      return;
+    }
+    // movement
+    let nx=rocket.x, ny=rocket.y;
+    const speed = 3;
+    if(keys.left) nx -= speed;
+    if(keys.right) nx += speed;
+    if(keys.up) ny -= speed;
+    if(keys.down) ny += speed;
+    if(canMove(nx,ny)){ rocket.x = nx; rocket.y = ny; }
+    raf = requestAnimationFrame(draw);
+    activeSession.sessions[name].raf = raf;
+  }
+  // key handlers
+  function keyDown(e){ if(e.key.includes('Arrow')){ e.preventDefault(); if(e.key==='ArrowLeft') keys.left=true; if(e.key==='ArrowRight') keys.right=true; if(e.key==='ArrowUp') keys.up=true; if(e.key==='ArrowDown') keys.down=true; } }
+  function keyUp(e){ if(e.key.includes('Arrow')){ if(e.key==='ArrowLeft') keys.left=false; if(e.key==='ArrowRight') keys.right=false; if(e.key==='ArrowUp') keys.up=false; if(e.key==='ArrowDown') keys.down=false; } }
+  document.addEventListener('keydown', keyDown);
+  document.addEventListener('keyup', keyUp);
+
+  // store session
+  stopCurrentSession();
+  activeSession.sessions[name] = { raf:null, intervals: [], keyHandlers: [keyDown, keyUp], mouseHandlers: [] , needsRestart:false };
+  activeSession.current = name;
+  draw();
+}
+
+/* ===========================
+   JUEGO 2 - MEMORIA (DOM)
+============================*/
+function startMemoria(){
+  stopCurrentSession();
+  const name = 'memoria';
+  const gridEl = document.getElementById('memGrid');
+  const attemptsEl = document.getElementById('memAttempts');
+  const matchesEl = document.getElementById('memMatches');
+  const icons = ['🚀','🌙','🪐','⭐','👽','🔭','🛰️','☄️'];
+  // make pairs and shuffle
+  let cards = [...icons, ...icons].map((v,i)=>({id:i, val:v, flipped:false, matched:false}));
+  // shuffle
+  cards = cards.sort(()=>Math.random()-0.5);
+  let first=null, second=null, lock=false, attempts=0, matches=0;
+
+  function render(){
+    gridEl.innerHTML='';
+    cards.forEach((c,idx)=>{
+      const d = document.createElement('div');
+      d.className = 'card' + (c.flipped || c.matched ? ' flipped' : '');
+      d.dataset.index = idx;
+      d.innerHTML = c.flipped || c.matched ? c.val : '';
+      d.addEventListener('click', onCardClick);
+      gridEl.appendChild(d);
+    });
+    attemptsEl.innerText = attempts;
+    matchesEl.innerText = matches;
+  }
+
+  function onCardClick(e){
+    if(lock) return;
+    const idx = +e.currentTarget.dataset.index;
+    const card = cards[idx];
+    if(card.flipped || card.matched) return;
+    card.flipped = true;
+    if(!first) { first = {card, idx}; render(); return; }
+    second = {card, idx}; render();
+    lock = true;
+    attempts++;
+    if(first.card.val === second.card.val){
+      // match
+      first.card.matched = true;
+      second.card.matched = true;
+      matches++;
+      first = null; second = null; lock=false;
+      if(matches === icons.length){
+        setTimeout(()=> alert('¡Muy bien! Completaste la memoria espacial.'), 200);
+        activeSession.sessions[name] = { needsRestart: true };
+      }
+      render();
+    } else {
+      // flip back
+      setTimeout(()=>{
+        first.card.flipped=false; second.card.flipped=false;
+        first=null; second=null; lock=false; render();
+      }, 700);
+    }
+    render();
+  }
+
+  // initialize
+  cards = cards.sort(()=>Math.random()-0.5); attempts=0; matches=0;
+  render();
+  // store session (no RAF needed)
+  activeSession.sessions[name] = { raf:null, intervals: [], keyHandlers: [], mouseHandlers: [], needsRestart:false };
+  activeSession.current = name;
+}
+
+/* ===========================
+   JUEGO 3 - EVITAR ASTEROIDES
+============================*/
+function startEvitar(){
+  stopCurrentSession();
+  const name='evitar';
+  const canvas = document.getElementById('evitCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  let raf, intervals = [];
+  let ship = {x: (W-50)/2, y: H-80, w:50, h:30, color:'#7efcff'};
+  let asteroids = [];
+  let score = 0, lives = 3;
+  const spawnInterval = setInterval(()=>{
+    asteroids.push({x: Math.random()*(W-30), y:-30, r:12+Math.random()*20, speed: 2+Math.random()*3});
+    if(asteroids.length>22) asteroids.shift();
+  }, 800);
+  intervals.push(spawnInterval);
+
+  function collides(a,b){ return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // stars bg
+    for(let i=0;i<45;i++){ ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect((i*53)%W,(i*37)%H,2,2); }
+    // ship
+    ctx.fillStyle=ship.color; ctx.fillRect(ship.x, ship.y, ship.w, ship.h);
+    // asteroids
+    ctx.fillStyle='#d98b6b';
+    for(let i=asteroids.length-1;i>=0;i--){
+      const a = asteroids[i];
+      ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI*2); ctx.fill();
+      a.y += a.speed;
+      if(a.y - a.r > H){ asteroids.splice(i,1); score += 1; document.getElementById('evScore').innerText = score; }
+      // collision: approximate with box for ship
+      if(a.x > ship.x-10 && a.x < ship.x+ship.w+10 && a.y + a.r > ship.y && a.y - a.r < ship.y + ship.h){
+        // hit
+        asteroids.splice(i,1); lives--; document.getElementById('evLives').innerText = lives;
+        if(lives <= 0){
+          cancelAnimationFrame(raf);
+          setTimeout(()=> alert('Has perdido todas las vidas. Puntaje: '+score), 40);
+          activeSession.sessions[name] = { needsRestart: true };
+          return;
+        }
+      }
+    }
+    // HUD
+    ctx.fillStyle='#dfefff'; ctx.font='16px sans-serif';
+    ctx.fillText('Evita los asteroides. Vidas: '+lives+'  Puntaje: '+score, 12, 22);
+    raf = requestAnimationFrame(draw);
+    activeSession.sessions[name].raf = raf;
+  }
+
+  // keyboard controls
+  function keyHandler(e){
+    if(e.key==='ArrowLeft'){ ship.x -= 14; if(ship.x<0) ship.x=0; }
+    if(e.key==='ArrowRight'){ ship.x += 14; if(ship.x>W-ship.w) ship.x=W-ship.w; }
+  }
+  document.addEventListener('keydown', keyHandler);
+
+  activeSession.sessions[name] = { raf:null, intervals: intervals, keyHandlers:[keyHandler], mouseHandlers: [], needsRestart:false };
+  activeSession.current = name;
+  // init HUD
+  document.getElementById('evLives').innerText = lives;
+  document.getElementById('evScore').innerText = score;
+  draw();
+}
+
+/* ===========================
+   JUEGO 4 - ATRAPA ESTRELLAS
+============================*/
+function startAtrapa(){
+  stopCurrentSession();
+  const name='atrapa';
+  const canvas = document.getElementById('trapCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  let raf, intervals = [];
+  let platform = {x: (W-120)/2, y: H-40, w:120, h:14};
+  let stars = [];
+  let score = 0;
+  const spawn = setInterval(()=> {
+    stars.push({x: 20 + Math.random()*(W-40), y:-20, r:8+Math.random()*10, speed:2+Math.random()*3});
+    if(stars.length>30) stars.shift();
+  }, 700);
+  intervals.push(spawn);
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // background dots
+    for(let i=0;i<50;i++){ ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect((i*41)%W,(i*29)%H,2,2); }
+    // platform
+    ctx.fillStyle='#7efcff'; ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
+    // stars
+    ctx.fillStyle='#ffea7a';
+    for(let i=stars.length-1;i>=0;i--){
+      const s = stars[i];
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      s.y += s.speed;
+      if(s.y - s.r > H){ stars.splice(i,1); }
+      // catch
+      if(s.y + s.r >= platform.y && s.x > platform.x && s.x < platform.x + platform.w){
+        score += 1; stars.splice(i,1); document.getElementById('trapScore').innerText = score;
+      }
+    }
+    ctx.fillStyle='#dfefff'; ctx.font='16px sans-serif';
+    ctx.fillText('Atrapa estrellas. Puntaje: '+score, 12, 22);
+    raf = requestAnimationFrame(draw);
+    activeSession.sessions[name].raf = raf;
+  }
+
+  // mouse control over canvas
+  function onMouse(e){
+    const rect = canvas.getBoundingClientRect();
+    let mx = e.clientX - rect.left;
+    platform.x = mx - platform.w/2;
+    if(platform.x < 0) platform.x = 0;
+    if(platform.x > W - platform.w) platform.x = W - platform.w;
+  }
+  canvas.addEventListener('mousemove', onMouse);
+  activeSession.sessions[name] = { raf:null, intervals: intervals, keyHandlers: [], mouseHandlers: [onMouse], needsRestart:false };
+  activeSession.current = name;
+  document.getElementById('trapScore').innerText = score;
+  draw();
+}
+
+/* --------------------------
+  Cuando se marca needsRestart: reiniciar
+  (las llamadas que marcan needsRestart son puestas por cada juego cuando termina)
+----------------------------*/
+(function watchSessions(){
+  setInterval(()=>{
+    for(const k in activeSession.sessions){
+      const s = activeSession.sessions[k];
+      if(s && s.needsRestart){
+        // reset by calling start function again if currently visible
+        s.needsRestart = false;
+        if(k === 'laberinto') startLaberinto();
+        if(k === 'memoria') startMemoria();
+        if(k === 'evitar') startEvitar();
+        if(k === 'atrapa') startAtrapa();
+      }
+    }
+  }, 400);
+})();
+
+</script>
+</body>
+</html> 

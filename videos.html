@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Videos - Hackonautas</title>
+<style>
+html, body {
+  margin: 0; padding: 0;
+  font-family: 'Orbitron', sans-serif;
+  color: white;
+  background: black;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+canvas { position: fixed; top:0; left:0; z-index:0; }
+
+header{
+  position: relative;
+  width: 100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+header img{
+  width:100%;
+  height:auto;
+  display:block;
+  max-width:none;
+}
+
+nav{
+  position:absolute;
+  bottom:10px;
+  display:flex;
+  justify-content:center;
+  gap: 15px;
+  flex-wrap: wrap;
+  z-index:10;
+}
+nav a{
+  padding:10px 20px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 8px;
+  text-decoration: none;
+  color:white;
+  transition:0.3s;
+  font-weight:bold;
+  box-shadow: 0 0 10px white;
+}
+nav a:hover{
+  background: rgba(255,255,255,0.2);
+  color:black;
+  box-shadow: 0 0 20px #fff, 0 0 30px white inset;
+}
+
+main{
+  position:relative;
+  z-index:10;
+  padding:20px;
+  text-align:center;
+}
+
+h1{
+  font-size:2.5em;
+  margin-bottom:20px;
+  text-shadow: 0 0 15px white, 0 0 30px white;
+}
+
+/* Video containers */
+.video-container{
+  display:inline-block;
+  margin:10px;
+  border-radius:10px;
+  overflow:hidden;
+  opacity:0;
+  transform: translateY(50px);
+  transition: transform 1s ease, opacity 1s ease, box-shadow 0.5s ease;
+}
+.video-container video{
+  width:480px;
+  height:270px;
+  display:block;
+  border-radius:10px;
+  transition: transform 0.5s ease;
+}
+.video-container:hover{
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 0 30px white;
+}
+@media(max-width:1000px){
+  .video-container video{
+    width:90%;
+    height:auto;
+  }
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<header>
+  <img src="banner.general.jpg" alt="Banner Hackonautas">
+ <nav id="mainNav">
+  <a href="index.html">Home</a>
+  <a href="imagenes.html">Images</a>
+  <a href="videos.html">Videos</a>
+  <a href="explorador.html">3D Explorer</a>
+  <a href="juego.html">Games</a>
+  <a href="contacto.html">Contact</a>
+</nav>
+</header>
+
+<main>
+  <h1>Space Videos</h1>
+  <div class="video-container">
+    <video src="We Are NASA - NASA (1080p, h264, youtube).mp4" controls></video>
+  </div>
+  <div class="video-container">
+    <video src="Artemis Accords Celebrating 50 Country Signatories - NASA (1080p, h264, youtube).mp4" controls></video>
+  </div>
+  <div class="video-container">
+    <video src="VF_Russian Space Pioneer Alexey Leonov~medium.mp4" controls></video>
+  </div>
+  <div class="video-container">
+    <video src="KSC-20190205-FJM01-0003_EGS Video For Cabana~medium.mp4" controls></video>
+  </div>
+</main>
+
+<script>
+// ---------- Fondo estrellado ----------
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+window.addEventListener('resize',()=>{
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
+
+// Estrellas
+const stars = Array.from({length: Math.floor(width/4)},()=>({
+  x: Math.random()*width,
+  y: Math.random()*height,
+  r: Math.random()*1.2,
+  alpha: Math.random(),
+  dx: (Math.random()-0.5)*0.2,
+  dy: (Math.random()-0.5)*0.2
+}));
+
+function animateBG(){
+  ctx.fillStyle='black';
+  ctx.fillRect(0,0,width,height);
+  stars.forEach(s=>{
+    ctx.fillStyle=`rgba(255,255,255,${s.alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fill();
+    s.x += s.dx; s.y += s.dy;
+    if(s.x<0||s.x>width) s.dx*=-1;
+    if(s.y<0||s.y>height) s.dy*=-1;
+  });
+  requestAnimationFrame(animateBG);
+}
+animateBG();
+
+// Animar videos con entrada suave
+const videos = document.querySelectorAll('.video-container');
+videos.forEach((v,i)=>{
+  setTimeout(()=>{
+    v.style.opacity='1';
+    v.style.transform='translateY(0)';
+  }, i*400);
+});
+</script>
+</body>
+</html>
