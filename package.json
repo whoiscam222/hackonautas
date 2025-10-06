@@ -1,0 +1,12 @@
+{
+  "name": "hackonautas",
+  "version": "1.0.0",
+  "description": "Hackonautas",
+  "main": "index.html",
+  "scripts": {
+    "deploy": "gh-pages -d ."
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
