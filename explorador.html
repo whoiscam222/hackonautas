@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Explorador Espacial - Hackonautas</title>
+<style>
+html, body{
+  margin:0; padding:0;
+  height:100%; width:100%;
+  background:black;
+  font-family:'Orbitron', sans-serif;
+  color:white;
+  overflow:hidden;
+}
+canvas{position:fixed; top:0; left:0; z-index:0;}
+
+header{
+  position:relative;
+  text-align:center;
+  padding:20px;
+  z-index:10;
+  background: rgba(0,0,0,0.6);
+}
+header img{
+  max-width:800px;
+  width:90%;
+  border-radius:15px;
+}
+
+nav{
+  display:flex; justify-content:center; gap:15px; margin-top:10px; flex-wrap: wrap;
+}
+nav a{
+  padding:10px 20px; background:#444; border-radius:8px; text-decoration:none; color:white;
+  font-weight:bold; box-shadow:0 0 10px white;
+  transition:0.3s;
+}
+nav a:hover{background:white; color:black; box-shadow:0 0 20px #fff,0 0 30px white inset;}
+
+main{
+  position:relative;
+  z-index:10;
+  text-align:center;
+}
+h1{
+  font-size:2em;
+  margin-bottom:10px;
+  text-shadow:0 0 15px white,0 0 30px white;
+}
+p{
+  font-size:1em;
+  max-width:900px;
+  margin:0 auto 20px auto;
+  line-height:1.5em;
+}
+#infoBox{
+  position:absolute;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  padding:15px 25px;
+  border-radius:10px;
+  text-align:center;
+  max-width:700px;
+  display:none;
+  z-index:15;
+}
+#infoBox h2{
+  margin:5px 0;
+}
+#infoBox p{
+  font-size:0.9em;
+  line-height:1.4em;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<canvas id="planetCanvas"></canvas>
+
+<header>
+  <img src="banner.general.jpg" alt="Banner Hackonautas">
+  <nav id="mainNav">
+  <a href="index.html">Home</a>
+  <a href="imagenes.html">Images</a>
+  <a href="videos.html">Videos</a>
+  <a href="explorador.html">3D Explorer</a>
+  <a href="juego.html">Games</a>
+  <a href="contacto.html">Contact</a>
+</nav>
+</header>
+
+<main>
+  <h1>Explorador Espacial</h1>
+  <p>Click on a planet to explore its rotation and details 🚀</p>
+</main>
+
+<div id="infoBox">
+  <h2 id="planetName"></h2>
+  <p id="planetDesc"></p>
+</div>
+
+<script>
+// --- Canvas Setup ---
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+const planetCanvas = document.getElementById('planetCanvas');
+const pCtx = planetCanvas.getContext('2d');
+
+let width = bgCanvas.width = planetCanvas.width = window.innerWidth;
+let height = bgCanvas.height = planetCanvas.height = window.innerHeight;
+
+window.addEventListener('resize',()=>{
+  width = bgCanvas.width = planetCanvas.width = window.innerWidth;
+  height = bgCanvas.height = planetCanvas.height = window.innerHeight;
+});
+
+// --- Stars ---
+let stars = [];
+function initStars(){
+  stars = Array.from({length: Math.floor(width/2)}, () => ({
+    x: Math.random()*width,
+    y: Math.random()*height,
+    r: Math.random()*1.5 + 0.5,
+    alpha: Math.random(),
+    dx: (Math.random()-0.5)*0.3,
+    dy: (Math.random()-0.5)*0.3
+  }));
+}
+initStars();
+function animateBG(){
+  bgCtx.fillStyle='black';
+  bgCtx.fillRect(0,0,width,height);
+  stars.forEach(s=>{
+    bgCtx.fillStyle=`rgba(255,255,255,${s.alpha})`;
+    bgCtx.beginPath();
+    bgCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    bgCtx.fill();
+    s.x += s.dx; s.y += s.dy;
+    if(s.x<0||s.x>width) s.dx*=-1;
+    if(s.y<0||s.y>height) s.dy*=-1;
+  });
+  requestAnimationFrame(animateBG);
+}
+animateBG();
+
+// --- Planets ---
+const infoBox = document.getElementById('infoBox');
+const planetName = document.getElementById('planetName');
+const planetDesc = document.getElementById('planetDesc');
+
+const planets = [
+  {name:"Mercury", color:"#b5b5b5", radius:20, distance:100, speed:0.04, desc:"The smallest and fastest planet, Mercury zips around the Sun every 88 days."},
+  {name:"Venus", color:"#e0c070", radius:30, distance:150, speed:0.015, desc:"Venus has a thick, toxic atmosphere and rotates slowly in retrograde."},
+  {name:"Earth", color:"#66ccff", radius:35, distance:220, speed:0.01, desc:"Our home planet, with oceans and life. Rotates once every 24 hours."},
+  {name:"Mars", color:"#ff6666", radius:28, distance:300, speed:0.008, desc:"The red planet with its canyons and mountains. Rotation period is 24.6 hours."},
+  {name:"Jupiter", color:"#ffcc99", radius:60, distance:420, speed:0.005, desc:"The largest planet in our Solar System, with a giant storm called the Great Red Spot."},
+  {name:"Saturn", color:"#ffddaa", radius:55, distance:560, speed:0.004, desc:"Famous for its rings made of ice and rock. Saturn has dozens of moons."},
+  {name:"Uranus", color:"#66ffff", radius:45, distance:680, speed:0.003, desc:"An ice giant that rotates on its side, with faint rings and many moons."},
+  {name:"Neptune", color:"#3366ff", radius:45, distance:800, speed:0.002, desc:"The distant blue ice giant with supersonic winds and 14 moons."},
+];
+
+let angleOffsets = planets.map(()=>Math.random()*Math.PI*2);
+let focusedPlanet = null;
+let cameraZoom = 1;
+let camX = 0;
+let camY = 0;
+
+planetCanvas.addEventListener('click', (e)=>{
+  const clickX = (e.clientX - width/2)/cameraZoom - camX;
+  const clickY = (e.clientY - height/2)/cameraZoom - camY;
+  planets.forEach((p,i)=>{
+    const px = Math.cos(angleOffsets[i])*p.distance;
+    const py = Math.sin(angleOffsets[i])*p.distance;
+    const dist = Math.hypot(clickX - px, clickY - py);
+    if(dist < p.radius){
+      focusedPlanet = i;
+      planetName.innerText = p.name;
+      planetDesc.innerText = p.desc;
+      infoBox.style.display = "block";
+    }
+  });
+});
+
+planetCanvas.addEventListener('dblclick', ()=>{
+  focusedPlanet = null;
+  infoBox.style.display = "none";
+});
+
+// --- Animation ---
+let globalAngle = 0;
+function drawPlanets(){
+  pCtx.clearRect(0,0,width,height);
+
+  // Camera movement
+  if(focusedPlanet!==null){
+    const p = planets[focusedPlanet];
+    const targetX = Math.cos(angleOffsets[focusedPlanet])*p.distance;
+    const targetY = Math.sin(angleOffsets[focusedPlanet])*p.distance;
+    camX += (targetX - camX)*0.05;
+    camY += (targetY - camY)*0.05;
+    cameraZoom += (2 - cameraZoom)*0.05;
+  } else {
+    camX += (0 - camX)*0.05;
+    camY += (0 - camY)*0.05;
+    cameraZoom += (1 - cameraZoom)*0.05;
+  }
+
+  pCtx.save();
+  pCtx.translate(width/2, height/2);
+  pCtx.scale(cameraZoom, cameraZoom);
+  pCtx.translate(-camX, -camY);
+
+  planets.forEach((p,i)=>{
+    angleOffsets[i] += p.speed;
+    const x = Math.cos(angleOffsets[i])*p.distance;
+    const y = Math.sin(angleOffsets[i])*p.distance;
+
+    // Planet
+    const grad = pCtx.createRadialGradient(x,y,p.radius*0.2,x,y,p.radius);
+    grad.addColorStop(0,p.color);
+    grad.addColorStop(1,"#000");
+    pCtx.fillStyle = grad;
+    pCtx.beginPath();
+    pCtx.arc(x,y,p.radius,0,Math.PI*2);
+    pCtx.fill();
+
+    // Saturn rings
+    if(p.name==="Saturn"){
+      pCtx.strokeStyle="rgba(255,255,255,0.3)";
+      for(let r=1;r<=3;r++){
+        pCtx.lineWidth = 2;
+        pCtx.beginPath();
+        pCtx.ellipse(x,y,p.radius+r*12,p.radius+r*4,angleOffsets[i],0,Math.PI*2);
+        pCtx.stroke();
+      }
+    }
+  });
+
+  pCtx.restore();
+  requestAnimationFrame(drawPlanets);
+}
+drawPlanets();
+</script>
+</body>
+</html>
